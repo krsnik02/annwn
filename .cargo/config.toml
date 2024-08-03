@@ -1,0 +1,12 @@
+
+[build]
+rustflags = ["-C", "link-arg=-Tlink.x"]
+target = "riscv64imac-unknown-none-elf"
+
+[target.riscv64imac-unknown-none-elf]
+runner = """
+qemu-system-riscv64 
+    -machine virt 
+    -serial stdio
+    -kernel
+"""
