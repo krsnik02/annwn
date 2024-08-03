@@ -1,4 +1,5 @@
-## Bare metal Rust
+# Building an RISC-V OS in Rust
+## Chapter 1: Bare metal Rust
 
 ### Prequesites
 
@@ -7,7 +8,7 @@ In order to run our kernel we will need the QEMU emulator, which can be dowloade
 ### The bare minimum
 
 
-The first thing to do is create a new project.
+The first thing to do is create a new project. I've decided to call my kernel Annwn, after the mythological Welsh otherworld, but you can call it anything you wish.
 ```
 $ cargo new annwn
     Creating binary (application) `annwn` package
@@ -357,7 +358,7 @@ We add the following lines to `src/main.rs`.
 core::arch::global_asm!(include_str!("start.s"));
 
 #[no_mangle]
-extern "C" fn kmain(_hart_id: usize, _fdt: *const u8) -> ! {
+extern "C" fn kmain(_hart_id: usize, _dtb: *const u8) -> ! {
     loop {}
 }
 ```
@@ -435,4 +436,4 @@ fn main() {
 }
 ```
 
-The code for this project can be found at **TODO: link**.
+The code for this project can be found at [https://github.com/krsnik02/annwn](https://github.com/krsnik02/annwn).

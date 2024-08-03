@@ -4,7 +4,7 @@
 core::arch::global_asm!(include_str!("start.s"));
 
 #[no_mangle]
-extern "C" fn kmain(_hart_id: usize, _fdt: *const u8) -> ! {
+extern "C" fn kmain(_hart_id: usize, _dtb: *const u8) -> ! {
     loop {}
 }
 
