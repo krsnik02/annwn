@@ -3,7 +3,7 @@ use core::ffi::CStr;
 use crate::util::align_up;
 
 #[allow(unused)]
-struct FdtHeader {
+struct DtHeader {
     magic: u32,
     totalsize: u32,
     off_dt_struct: u32,
@@ -16,7 +16,7 @@ struct FdtHeader {
     size_dt_struct: u32,
 }
 
-impl FdtHeader {
+impl DtHeader {
     unsafe fn from_ptr(ptr: *const u8) -> Option<Self> {
         let ptr: *const u32 = ptr.cast();
 
@@ -55,14 +55,14 @@ impl FdtHeader {
     }
 }
 
-pub struct Fdt<'a> {
-    header: FdtHeader,
+pub struct DeviceTree<'a> {
+    header: DtHeader,
     data: &'a [u8],
 }
 
-impl<'a> Fdt<'a> {
+impl<'a> DeviceTree<'a> {
     pub unsafe fn from_ptr(ptr: *const u8) -> Option<Self> {
-        let header = FdtHeader::from_ptr(ptr)?;
+        let header = DtHeader::from_ptr(ptr)?;
         let data = core::slice::from_raw_parts(ptr, header.totalsize as usize);
         Some(Self { header, data })
     }
@@ -80,10 +80,10 @@ impl<'a> Fdt<'a> {
         })
     }
 
-    pub fn root_node(&self) -> FdtNode<'a> {
+    pub fn root_node(&self) -> DtNode<'a> {
         let mut iter = self.struct_items();
         match iter.next() {
-            Some(StructItem::BeginNode { name }) => FdtNode { name, iter },
+            Some(StructItem::BeginNode { name }) => DtNode { name, iter },
             _ => panic!("expected FDT_BEGIN_NODE"),
         }
     }
@@ -105,12 +105,12 @@ pub struct MemoryReservation {
     pub size: u64,
 }
 
-pub struct FdtNode<'a> {
+pub struct DtNode<'a> {
     pub name: &'a str,
     iter: StructItemIter<'a>,
 }
 
-impl<'a> FdtNode<'a> {
+impl<'a> DtNode<'a> {
     pub fn properties(&self) -> impl Iterator<Item = Property<'a>> {
         self.iter
             .clone()
@@ -140,14 +140,14 @@ pub struct Children<'a> {
 }
 
 impl<'a> Iterator for Children<'a> {
-    type Item = FdtNode<'a>;
+    type Item = DtNode<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         while self.depth > 0 {
             match self.iter.next()? {
                 StructItem::BeginNode { name } => {
                     self.depth += 1;
                     if self.depth == 2 {
-                        return Some(FdtNode {
+                        return Some(DtNode {
                             name,
                             iter: self.iter.clone(),
                         });

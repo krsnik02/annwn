@@ -1,25 +1,25 @@
 #![no_std]
 #![no_main]
 
-use fdt::{Fdt, FdtNode};
+use dtb::{DeviceTree, DtNode};
 
 core::arch::global_asm!(include_str!("start.s"));
 
 #[no_mangle]
-extern "C" fn kmain(hart_id: usize, fdt: *const u8) -> ! {
+extern "C" fn kmain(hart_id: usize, dtb: *const u8) -> ! {
     println!();
     println!("Annwn v{}", env!("CARGO_PKG_VERSION"));
     println!("booting on hart {}", hart_id);
 
-    let fdt = unsafe { Fdt::from_ptr(fdt).unwrap() };
-    for resv in fdt.memory_reservations() {
+    let dt = unsafe { DeviceTree::from_ptr(dtb).unwrap() };
+    for resv in dt.memory_reservations() {
         println!(
             "Memory Reservation: address = {:#x}, size = {:#x}",
             resv.address, resv.size
         );
     }
 
-    let root = fdt.root_node();
+    let root = dt.root_node();
     show_node(root, 0);
 
     fn indent(depth: usize) {
@@ -29,7 +29,7 @@ extern "C" fn kmain(hart_id: usize, fdt: *const u8) -> ! {
     }
     loop {}
 
-    fn show_node(node: FdtNode<'_>, depth: usize) {
+    fn show_node(node: DtNode<'_>, depth: usize) {
         indent(depth);
         println!("{} : {{", node.name);
         for prop in node.properties() {
@@ -49,7 +49,7 @@ fn panic_handler(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-mod fdt;
+mod dtb;
 mod io;
 
 mod util {
