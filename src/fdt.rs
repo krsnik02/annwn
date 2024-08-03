@@ -80,7 +80,15 @@ impl<'a> Fdt<'a> {
         })
     }
 
-    pub fn struct_items(&self) -> StructItemIter<'a> {
+    pub fn root_node(&self) -> FdtNode<'a> {
+        let mut iter = self.struct_items();
+        match iter.next() {
+            Some(StructItem::BeginNode { name }) => FdtNode { name, iter },
+            _ => panic!("expected FDT_BEGIN_NODE"),
+        }
+    }
+
+    fn struct_items(&self) -> StructItemIter<'a> {
         let dt_struct =
             &self.data[self.header.off_dt_struct as usize..][..self.header.size_dt_struct as usize];
         let dt_strings = &self.data[self.header.off_dt_strings as usize..]
@@ -97,13 +105,70 @@ pub struct MemoryReservation {
     pub size: u64,
 }
 
-pub enum StructItem<'a> {
+pub struct FdtNode<'a> {
+    pub name: &'a str,
+    iter: StructItemIter<'a>,
+}
+
+impl<'a> FdtNode<'a> {
+    pub fn properties(&self) -> impl Iterator<Item = Property<'a>> {
+        self.iter
+            .clone()
+            .map_while(|item| match item {
+                StructItem::Prop { name, value } => Some(Property { name, value }),
+                _ => None,
+            })
+            .fuse()
+    }
+
+    pub fn children(&self) -> Children<'a> {
+        Children {
+            iter: self.iter.clone(),
+            depth: 1,
+        }
+    }
+}
+
+pub struct Property<'a> {
+    pub name: &'a str,
+    pub value: &'a [u8],
+}
+
+pub struct Children<'a> {
+    iter: StructItemIter<'a>,
+    depth: usize,
+}
+
+impl<'a> Iterator for Children<'a> {
+    type Item = FdtNode<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.depth > 0 {
+            match self.iter.next()? {
+                StructItem::BeginNode { name } => {
+                    self.depth += 1;
+                    if self.depth == 2 {
+                        return Some(FdtNode {
+                            name,
+                            iter: self.iter.clone(),
+                        });
+                    }
+                }
+                StructItem::EndNode => self.depth -= 1,
+                StructItem::Prop { .. } => {}
+            }
+        }
+        None
+    }
+}
+
+enum StructItem<'a> {
     BeginNode { name: &'a str },
     EndNode,
     Prop { name: &'a str, value: &'a [u8] },
 }
 
-pub struct StructItemIter<'a> {
+#[derive(Clone, Copy)]
+struct StructItemIter<'a> {
     dt_struct: &'a [u8],
     dt_strings: &'a [u8],
 }

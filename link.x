@@ -34,7 +34,7 @@ SECTIONS {
     } > RAM
 
     .stack (NOLOAD) : ALIGN(8) {
-        . = . + 4K;
+        . = . + 8K;
         _sstack = .;
     } > RAM
 

@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use fdt::{Fdt, StructItem};
+use fdt::{Fdt, FdtNode};
 
 core::arch::global_asm!(include_str!("start.s"));
 
@@ -18,17 +18,30 @@ extern "C" fn kmain(hart_id: usize, fdt: *const u8) -> ! {
             resv.address, resv.size
         );
     }
-    for item in fdt.struct_items() {
-        match item {
-            StructItem::BeginNode { name } => println!("FDT_BEGIN_NODE: name = {:?}", name),
-            StructItem::EndNode => println!("FDT_END_NODE"),
-            StructItem::Prop { name, value } => {
-                println!("FDT_PROP: name = {:?}, value = {:?}", name, value)
-            }
+
+    let root = fdt.root_node();
+    show_node(root, 0);
+
+    fn indent(depth: usize) {
+        for _ in 0..depth {
+            print!("    ");
         }
     }
-
     loop {}
+
+    fn show_node(node: FdtNode<'_>, depth: usize) {
+        indent(depth);
+        println!("{} : {{", node.name);
+        for prop in node.properties() {
+            indent(depth);
+            println!("    {} = {:?};", prop.name, prop.value);
+        }
+        for node in node.children() {
+            show_node(node, depth + 1);
+        }
+        indent(depth);
+        println!("}};");
+    }
 }
 
 #[panic_handler]
